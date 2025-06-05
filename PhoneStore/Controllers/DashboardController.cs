@@ -279,15 +279,24 @@ namespace PhoneStore.Controllers
                 .CountAsync();
             var outOfStockProducts = await _context.Products
                 .Where(p => p.Stock == 0)
-                .CountAsync();
-
-            // Thống kê đơn hàng
+                .CountAsync();            // Thống kê đơn hàng
             var totalOrders = await _context.Orders.CountAsync();
             var recentOrders = await _context.Orders
                 .Include(o => o.Customer)
                 .OrderByDescending(o => o.OrderDate)
                 .Take(5)
                 .ToListAsync();
+                
+            // Thống kê đơn hàng theo trạng thái
+            var orderStatusStats = await _context.Orders
+                .GroupBy(o => o.Status ?? "Không xác định")
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Status, x => x.Count);
+                
+            // Đơn hàng mới trong 7 ngày qua
+            var newOrdersLast7Days = await _context.Orders
+                .Where(o => o.OrderDate != null && o.OrderDate >= DateTime.Now.AddDays(-7))
+                .CountAsync();
 
             // Doanh thu theo tháng (6 tháng gần nhất)
             var sixMonthsAgo = DateTime.Now.AddMonths(-5);
@@ -391,6 +400,9 @@ namespace PhoneStore.Controllers
             ViewBag.TotalOrders = totalOrders;
             ViewBag.RecentOrders = recentOrders;
             ViewBag.CategoryData = categoryData;
+            ViewBag.OrderStatusStats = orderStatusStats;
+            ViewBag.NewOrdersLast7Days = newOrdersLast7Days;
+            ViewBag.ProcessingOrders = orderStatusStats.ContainsKey(Order.OrderStatus.Processing) ? orderStatusStats[Order.OrderStatus.Processing] : 0;
             
             // Dữ liệu biểu đồ tháng
             ViewBag.ChartMonths = string.Join(",", months.Select(m => $"'{m}'"));

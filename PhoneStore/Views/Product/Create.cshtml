@@ -121,8 +121,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    <script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}    <script>
         function updateSubmitButton() {
             const form = document.getElementById('productForm');
             const submitButton = document.getElementById('submitButton');
@@ -132,25 +131,47 @@
 
         function validateImages() {
             const sections = document.querySelectorAll('.color-section');
+            let isValid = true;
+            
+            const selectedColors = new Set();
+            
             for (const section of sections) {
                 const colorSelect = section.querySelector('.color-select');
                 const fileInput = section.querySelector('.image-input');
                 
-                if (!colorSelect.value) return false;
-                if (!fileInput.files.length) return false;
+                // Kiểm tra nếu có màu được chọn
+                if (!colorSelect.value) {
+                    console.log('Color not selected');
+                    isValid = false;
+                } else if (selectedColors.has(colorSelect.value)) {
+                    // Ngăn không cho chọn trùng màu
+                    alert('Mỗi màu chỉ có thể được chọn một lần');
+                    colorSelect.value = '';
+                    isValid = false;
+                } else {
+                    selectedColors.add(colorSelect.value);
+                }
+                
+                // Kiểm tra nếu có ảnh được chọn
+                if (!fileInput.files.length) {
+                    console.log('No files selected');
+                    isValid = false;
+                }
 
+                // Kiểm tra kích thước và loại file ảnh
                 for (const file of fileInput.files) {
                     if (file.size > 10 * 1024 * 1024) { // 10MB
                         alert('Một hoặc nhiều file ảnh vượt quá giới hạn 10MB');
-                        return false;
+                        isValid = false;
                     }
                     if (!file.type.startsWith('image/')) {
                         alert('Một hoặc nhiều file không phải là ảnh');
-                        return false;
+                        isValid = false;
                     }
                 }
             }
-            return true;
+            
+            return isValid;
         }
 
         function setupImagePreview(container) {
@@ -161,6 +182,10 @@
             fileInput.addEventListener('change', function() {
                 previewContainer.innerHTML = '';
                 const files = Array.from(this.files);
+                
+                if (files.length > 0) {
+                    console.log(`Preview ${files.length} images for input: ${this.name}`);
+                }
                 
                 files.forEach(file => {
                     if (file.type.startsWith('image/')) {
@@ -185,9 +210,7 @@
 
                 updateSubmitButton();
             });
-        }
-
-        function addColorSection() {
+        }        function addColorSection() {
             const container = document.getElementById('colorContainer');
             const template = container.children[0].cloneNode(true);
             
@@ -196,11 +219,23 @@
             template.querySelector('.image-input').value = '';
             template.querySelector('.image-preview').innerHTML = '';
             
+            // Đảm bảo mỗi input có ID riêng biệt
+            const colorIndex = container.children.length;
+            
+            // Cập nhật nội dung của phần tử, thêm chỉ số để xác định
+            const fileInput = template.querySelector('.image-input');
+            fileInput.id = 'image-input-' + colorIndex;
+            
             container.appendChild(template);
             setupImagePreview(template);
 
+            // Cập nhật sự kiện cho drag & drop
+            setupDragAndDrop(template);
+            
             // Update validation
             updateSubmitButton();
+            
+            console.log(`Added new color section, total sections: ${container.children.length}`);
         }
 
         function removeColorSection(button) {
@@ -208,14 +243,11 @@
             if (sections.length > 1) {
                 button.closest('.color-section').remove();
                 updateSubmitButton();
+                console.log(`Removed color section, remaining sections: ${sections.length - 1}`);
             }
         }
-
-        // Setup initial color section
-        setupImagePreview(document.querySelector('.color-section'));
-
-        // Setup drag and drop for each section
-        document.querySelectorAll('.color-section').forEach(section => {
+        
+        function setupDragAndDrop(section) {
             const dropZone = section.querySelector('.border-dashed');
             const fileInput = section.querySelector('.image-input');
 
@@ -250,15 +282,54 @@
                 const event = new Event('change');
                 fileInput.dispatchEvent(event);
             });
-        });        // Set up form validation
-        document.getElementById('productForm').addEventListener('input', updateSubmitButton);
-        document.getElementById('productForm').addEventListener('submit', function(e) {
-            console.log('Form submit event triggered!');
-            console.log('Form valid:', this.checkValidity());
-            console.log('Images valid:', validateImages());
+        }        // Thiết lập các phần tử ban đầu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup initial color section
+            setupImagePreview(document.querySelector('.color-section'));
+            setupDragAndDrop(document.querySelector('.color-section'));
             
-            // Let the form submit naturally
+            // Set up form validation
+            document.getElementById('productForm').addEventListener('input', updateSubmitButton);
+            
+            document.getElementById('productForm').addEventListener('submit', function(e) {
+                console.log('Form submit event triggered!');
+                
+                // Kiểm tra trùng màu sắc
+                const colorSelects = document.querySelectorAll('.color-select');
+                const selectedColors = new Set();
+                let hasDuplicate = false;
+                
+                colorSelects.forEach(select => {
+                    if (select.value && selectedColors.has(select.value)) {
+                        hasDuplicate = true;
+                        alert('Mỗi màu chỉ có thể được chọn một lần. Vui lòng kiểm tra lại.');
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (select.value) {
+                        selectedColors.add(select.value);
+                    }
+                });
+                
+                if (hasDuplicate) {
+                    return false;
+                }
+                
+                const valid = this.checkValidity() && validateImages();
+                console.log('Form valid:', valid);
+                
+                if (!valid) {
+                    e.preventDefault();
+                    alert('Vui lòng kiểm tra lại form trước khi gửi');
+                    return false;
+                }
+                
+                // Hiển thị thông báo đang xử lý
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang xử lý...';
+            });
+            
+            updateSubmitButton();
         });
-        updateSubmitButton();
     </script>
 }

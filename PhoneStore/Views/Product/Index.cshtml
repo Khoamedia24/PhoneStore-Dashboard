@@ -62,16 +62,18 @@
                     {
                         var firstImage = product.ProductImages.First();
                         <img src="/Product/GetImage/@firstImage.ImageId" alt="@product.ProductName" class="w-full h-48 object-cover">
-                        
-                        <!-- Color variants -->
+                          <!-- Color variants -->
                         <div class="absolute bottom-2 left-2 flex space-x-2">
                             @foreach (var colorGroup in product.ProductImages.GroupBy(pi => pi.Color).Take(5))
                             {
-                                <button class="w-6 h-6 rounded-full border-2 border-white shadow hover:scale-110 transition-transform duration-200"
-                                        style="background-color: @colorGroup.Key?.ColorName"
-                                        title="@colorGroup.Key?.ColorName"
-                                        onclick="showColorImages(@product.ProductId, @colorGroup.Key?.ColorId)">
-                                </button>
+                                @if (colorGroup.Key != null && colorGroup.Key.ColorId > 0)
+                                {
+                                    <button class="w-6 h-6 rounded-full border-2 border-white shadow hover:scale-110 transition-transform duration-200"
+                                            style="background-color: @colorGroup.Key.ColorName"
+                                            title="@colorGroup.Key.ColorName"
+                                            onclick="showColorImages(@product.ProductId, @colorGroup.Key.ColorId)">
+                                    </button>
+                                }
                             }
                         </div>
                     }
@@ -103,8 +105,11 @@
                             <span class="text-lg font-bold text-blue-600">@String.Format("{0:N0}", product.Price) ₫</span>
                         }
                         <span class="text-sm text-gray-500">Còn @product.Stock</span>
-                    </div>
-                    <div class="flex space-x-2">
+                    </div>                    <div class="flex space-x-2">
+                        <a href="/Product/Details/@product.ProductId" 
+                           class="flex-1 bg-green-500 hover:bg-green-600 text-white text-center py-2 rounded-lg transition-colors duration-300">
+                            Chi tiết
+                        </a>
                         <a href="/Product/Edit/@product.ProductId" 
                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-center py-2 rounded-lg transition-colors duration-300">
                             Sửa
@@ -114,10 +119,41 @@
                             Xóa
                         </button>
                     </div>
-                </div>
-            </div>
+                </div>            </div>
         }
     </div>
+    
+    <!-- Phân trang -->
+    @if (ViewBag.TotalPages > 1)
+    {
+        <div class="flex justify-center mt-8">
+            <div class="flex space-x-1">
+                @if (ViewBag.CurrentPage > 1)
+                {
+                    <a href="/Product/Index?searchTerm=@ViewBag.SearchTerm&category=@ViewBag.SelectedCategory&color=@ViewBag.SelectedColor&sortBy=@ViewBag.SortBy&page=@(ViewBag.CurrentPage - 1)" 
+                       class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Trước
+                    </a>
+                }
+                
+                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                {
+                    <a href="/Product/Index?searchTerm=@ViewBag.SearchTerm&category=@ViewBag.SelectedCategory&color=@ViewBag.SelectedColor&sortBy=@ViewBag.SortBy&page=@i" 
+                       class="px-4 py-2 @(i == ViewBag.CurrentPage ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800") rounded-lg hover:bg-blue-600 hover:text-white">
+                        @i
+                    </a>
+                }
+                
+                @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                {
+                    <a href="/Product/Index?searchTerm=@ViewBag.SearchTerm&category=@ViewBag.SelectedCategory&color=@ViewBag.SelectedColor&sortBy=@ViewBag.SortBy&page=@(ViewBag.CurrentPage + 1)" 
+                       class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                        Sau
+                    </a>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 <!-- Modal for color images -->
@@ -179,15 +215,40 @@
                     alert('Có lỗi xảy ra khi xóa sản phẩm');
                 });
             }
-        }
-
-        // Xử lý hiển thị hình ảnh theo màu
-        function showColorImages(productId, colorId) {
-            fetch(`/Product/GetColorImages/${productId}/${colorId}`)
-                .then(response => response.json())
-                .then(data => {
+        }        // Xử lý hiển thị hình ảnh theo màu        function showColorImages(productId, colorId) {
+            if (!productId || !colorId) {
+                console.error('Thiếu thông tin productId hoặc colorId:', { productId, colorId });
+                alert('Không thể hiển thị hình ảnh do thiếu thông tin sản phẩm hoặc màu sắc');
+                return;
+            }
+            
+            console.log(`Fetching images for product ${productId}, color ${colorId}`);
+            document.getElementById('colorModal').classList.remove('hidden');
+            document.getElementById('colorImages').innerHTML = '<div class="flex justify-center items-center p-10"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div></div>';
+            
+            const url = `/Product/GetColorImages?productId=${productId}&colorId=${colorId}`;
+            console.log(`Making request to: ${url}`);
+            
+            fetch(url)
+                .then(response => {
+                    console.log(`Response status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })                .then(data => {
+                    console.log('Response data:', data);
+                    if (!data.success) {
+                        throw new Error(data.message || 'Không lấy được dữ liệu hình ảnh');
+                    }
+                    
                     const container = document.getElementById('colorImages');
                     container.innerHTML = '';
+                    
+                    if (!data.images || data.images.length === 0) {
+                        container.innerHTML = '<p class="text-center text-gray-500 py-10">Không có hình ảnh nào cho màu này</p>';
+                        return;
+                    }
                     
                     data.images.forEach(image => {
                         const img = document.createElement('img');
@@ -196,12 +257,12 @@
                         img.className = 'w-full h-48 object-cover rounded-lg';
                         container.appendChild(img);
                     });
-                    
-                    document.getElementById('colorModal').classList.remove('hidden');
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('Có lỗi xảy ra khi tải hình ảnh');
+                    console.error('Error fetching color images:', error);
+                    document.getElementById('colorImages').innerHTML = 
+                        `<p class="text-center text-red-500 py-10">Có lỗi xảy ra khi tải hình ảnh: ${error.message}</p>
+                         <p class="text-center text-gray-500">Thử tải lại trang và thử lại.</p>`;
                 });
         }
 

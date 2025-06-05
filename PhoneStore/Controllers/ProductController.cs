@@ -70,14 +70,22 @@ namespace PhoneStore.Controllers
                 "price" => query.OrderBy(p => p.Price),
                 "stock" => query.OrderBy(p => p.Stock),
                 _ => query.OrderByDescending(p => p.ProductId)
-            };
-
-            // Phân trang
+            };            // Phân trang
             int pageSize = 12;
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            
             var products = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+                
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.SearchTerm = searchTerm;
+            ViewBag.SelectedCategory = category;
+            ViewBag.SelectedColor = color;
+            ViewBag.SortBy = sortBy;
 
             // Lấy danh sách danh mục cho dropdown
             ViewBag.Categories = await _context.Categories
@@ -116,62 +124,66 @@ namespace PhoneStore.Controllers
             _logger.LogInformation("=== CREATE PRODUCT REQUEST STARTED ===");
             _logger.LogInformation("Product data received: {@Product}", product);
             
-            // Extract colors and images from form
+            // Extract colors from form
             var colors = new List<int>();
-            var imagesByColor = new List<List<IFormFile>>();
+            var imagesByColor = new Dictionary<int, List<IFormFile>>();
             
             // Log form data
             foreach (var key in Request.Form.Keys)
             {
-                _logger.LogInformation("Form key: {Key}, Value: {Value}", key, Request.Form[key]);
-                
-                if (key == "Colors")
+                _logger.LogInformation("Form key: {Key}, Value count: {Count}", key, Request.Form[key].Count);
+            }
+            
+            // Get all color values first
+            if (Request.Form.ContainsKey("Colors"))
+            {
+                var colorValues = Request.Form["Colors"];
+                foreach (var colorValue in colorValues)
                 {
-                    foreach (var colorValue in Request.Form[key])
+                    _logger.LogInformation("Processing color value: {ColorValue}", colorValue);
+                    if (int.TryParse(colorValue, out int colorId) && colorId > 0)
                     {
-                        if (int.TryParse(colorValue, out int colorId))
-                        {
-                            colors.Add(colorId);
-                        }
+                        colors.Add(colorId);
+                        // Initialize the image list for this color
+                        imagesByColor[colorId] = new List<IFormFile>();
                     }
                 }
             }
-
-            // Group files by color sections
-            var colorIndex = 0;
-            var filesBySection = new Dictionary<int, List<IFormFile>>();
             
+            _logger.LogInformation("Found {Count} colors: {Colors}", 
+                colors.Count, 
+                string.Join(", ", colors));
+            
+            // Log all files to help with debugging
+            _logger.LogInformation("Total files in request: {Count}", Request.Form.Files.Count);
             foreach (var file in Request.Form.Files)
             {
-                _logger.LogInformation("File: {FileName}, Size: {Size}, ContentType: {ContentType}", 
-                    file.FileName, file.Length, file.ContentType);
-                    
+                _logger.LogInformation("File: {Name}, FileName: {FileName}, Size: {Size}", 
+                    file.Name, file.FileName, file.Length);
+            }
+            
+            // Group files by their form name index
+            var filesByIndex = new Dictionary<int, List<IFormFile>>();
+            
+            for (int i = 0; i < Request.Form.Files.Count; i++)
+            {
+                var file = Request.Form.Files[i];
+                // The name should follow format "Images" for multiple files for the same color
                 if (file.Name == "Images")
                 {
-                    if (!filesBySection.ContainsKey(colorIndex))
+                    int currentIndex = Math.Min(i, colors.Count - 1);
+                    if (currentIndex >= 0 && currentIndex < colors.Count)
                     {
-                        filesBySection[colorIndex] = new List<IFormFile>();
+                        int colorId = colors[currentIndex];
+                        imagesByColor[colorId].Add(file);
+                        _logger.LogInformation("Added file {FileName} to color {ColorId} at index {Index}", 
+                            file.FileName, colorId, currentIndex);
                     }
-                    filesBySection[colorIndex].Add(file);
                 }
             }
             
-            // Convert to expected format
-            for (int i = 0; i < colors.Count; i++)
-            {
-                if (filesBySection.ContainsKey(i))
-                {
-                    imagesByColor.Add(filesBySection[i]);
-                }
-                else
-                {
-                    imagesByColor.Add(new List<IFormFile>());
-                }
-            }
-              _logger.LogInformation("Colors processed: {Colors}", colors.Count > 0 ? string.Join(", ", colors) : "None");
-            _logger.LogInformation("Image groups processed: {ImageCount}", imagesByColor.Count);
-            
-            async Task<IActionResult> PrepareViewBagsAndReturn()
+            _logger.LogInformation("Processed {Count} color groups with images", imagesByColor.Count);
+              async Task<IActionResult> PrepareViewBagsAndReturn()
             {
                 ViewBag.Categories = new SelectList(await _context.Categories.ToListAsync(), "CategoryId", "CategoryName", product.CategoryId);
                 ViewBag.Colors = new SelectList(await _context.Colors.ToListAsync(), "ColorId", "ColorName");
@@ -196,12 +208,15 @@ namespace PhoneStore.Controllers
                     return await PrepareViewBagsAndReturn();
                 }
 
-                if (imagesByColor == null || imagesByColor.Count != colors.Count)
+                // Validate that each color has at least one image
+                foreach (var colorId in colors)
                 {
-                    _logger.LogWarning("Image groups count ({ImageCount}) does not match colors count ({ColorCount})",
-                        imagesByColor?.Count ?? 0, colors.Count);
-                    ModelState.AddModelError("", "Số lượng màu sắc và nhóm ảnh không khớp");
-                    return await PrepareViewBagsAndReturn();
+                    if (!imagesByColor.ContainsKey(colorId) || imagesByColor[colorId].Count == 0)
+                    {
+                        _logger.LogWarning("No images provided for color {ColorId}", colorId);
+                        ModelState.AddModelError("", $"Vui lòng chọn ít nhất một ảnh cho mỗi màu sắc");
+                        return await PrepareViewBagsAndReturn();
+                    }
                 }
 
                 // First save the product
@@ -218,21 +233,11 @@ namespace PhoneStore.Controllers
                 }
 
                 // Process images for each color
-                for (int i = 0; i < colors.Count; i++)
+                foreach (var colorId in colors)
                 {
-                    var colorId = colors[i];
-                    var colorImages = imagesByColor[i];
-
-                    _logger.LogInformation("Processing images for color {ColorId}, image count: {ImageCount}",
-                        colorId, colorImages?.Count ?? 0);
-
-                    if (colorImages == null || !colorImages.Any())
-                    {
-                        _logger.LogWarning("No images provided for color {ColorId}", colorId);
-                        ModelState.AddModelError("", $"Vui lòng chọn ít nhất một ảnh cho màu thứ {i + 1}");
-                        await transaction.RollbackAsync();
-                        return await PrepareViewBagsAndReturn();
-                    }
+                    var colorImages = imagesByColor[colorId];
+                    _logger.LogInformation("Processing {Count} images for color {ColorId}", 
+                        colorImages.Count, colorId);
 
                     foreach (var image in colorImages.Where(i => i != null && i.Length > 0))
                     {
@@ -331,20 +336,39 @@ namespace PhoneStore.Controllers
             {
                 return Json(new { success = false, message = "Lỗi khi xóa sản phẩm: " + ex.Message });
             }
-        }
-
-        [AdminAuthorize]
+        }        [HttpGet]
+        [Route("Product/GetColorImages")]
+        [Route("Product/GetColorImages/{productId:int}/{colorId:int}")]
         public async Task<IActionResult> GetColorImages(int productId, int colorId)
         {
-            var images = await _context.ProductImages
-                .Where(pi => pi.ProductId == productId && pi.ColorId == colorId)
-                .Select(pi => new { 
-                    imageId = pi.ImageId,
-                    imageUrl = $"/Product/GetImage/{pi.ImageId}"
-                })
-                .ToListAsync();
-
-            return Json(new { success = true, images = images });
+            try
+            {
+                _logger.LogInformation("Getting images for product {ProductId}, color {ColorId}", productId, colorId);
+                
+                if (productId <= 0 || colorId <= 0)
+                {
+                    _logger.LogWarning("Invalid parameters: productId={ProductId}, colorId={ColorId}", productId, colorId);
+                    return Json(new { success = false, message = "ID sản phẩm hoặc màu không hợp lệ" });
+                }
+                
+                var images = await _context.ProductImages
+                    .Where(pi => pi.ProductId == productId && pi.ColorId == colorId)
+                    .Select(pi => new { 
+                        imageId = pi.ImageId,
+                        imageUrl = $"/Product/GetImage/{pi.ImageId}"
+                    })
+                    .ToListAsync();
+                
+                _logger.LogInformation("Found {Count} images for product {ProductId}, color {ColorId}", 
+                    images.Count, productId, colorId);
+                
+                return Json(new { success = true, images = images });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting images for product {ProductId}, color {ColorId}", productId, colorId);
+                return Json(new { success = false, message = "Lỗi khi tải hình ảnh: " + ex.Message });
+            }
         }
 
         [HttpGet]
@@ -414,6 +438,270 @@ namespace PhoneStore.Controllers
                 ViewBag.Discounts = new SelectList(await _context.DiscountPrograms.ToListAsync(), "DiscountId", "DiscountName", product.DiscountId);
                 return View(product);
             }
+        }
+
+        [AdminAuthorize]
+        public async Task<IActionResult> Edit(int id)
+        {
+            _logger.LogInformation("Loading product {ProductId} for editing", id);
+            
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                    .ThenInclude(pi => pi.Color)
+                .Include(p => p.Discount)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+                
+            if (product == null)
+            {
+                _logger.LogWarning("Product with ID {ProductId} not found", id);
+                TempData["Error"] = "Không tìm thấy sản phẩm";
+                return RedirectToAction(nameof(Index));
+            }
+              // Group images by color for the view
+            ViewBag.ProductImagesGrouped = product.ProductImages
+                .GroupBy(pi => pi.ColorId ?? 0)
+                .ToDictionary(g => g.Key, g => g.ToList());
+                
+            ViewBag.Categories = new SelectList(await _context.Categories.ToListAsync(), "CategoryId", "CategoryName", product.CategoryId);
+            ViewBag.Colors = new SelectList(await _context.Colors.ToListAsync(), "ColorId", "ColorName");
+            ViewBag.Discounts = new SelectList(await _context.DiscountPrograms.ToListAsync(), "DiscountId", "DiscountName", product.DiscountId);
+            
+            return View(product);
+        }
+        
+        [AdminAuthorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(100_000_000)] // 100MB total limit
+        public async Task<IActionResult> Edit(int id, Product product)
+        {
+            _logger.LogInformation("=== EDIT PRODUCT REQUEST STARTED ===");
+            _logger.LogInformation("Product data received: {@Product}", product);
+            
+            if (id != product.ProductId)
+            {
+                _logger.LogWarning("ID mismatch: path ID {PathId} vs model ID {ModelId}", id, product.ProductId);
+                TempData["Error"] = "ID sản phẩm không khớp";
+                return RedirectToAction(nameof(Index));
+            }
+            
+            // Extract colors from form
+            var colors = new List<int>();
+            var imagesByColor = new Dictionary<int, List<IFormFile>>();
+            var keepExistingImages = new Dictionary<int, List<int>>();
+            
+            // Log form data
+            foreach (var key in Request.Form.Keys)
+            {
+                _logger.LogInformation("Form key: {Key}, Value count: {Count}", key, Request.Form[key].Count);
+            }
+            
+            // Get all color values first
+            if (Request.Form.ContainsKey("Colors"))
+            {
+                var colorValues = Request.Form["Colors"];
+                foreach (var colorValue in colorValues)
+                {
+                    if (int.TryParse(colorValue, out int colorId) && colorId > 0)
+                    {
+                        colors.Add(colorId);
+                        // Initialize the image list for this color
+                        imagesByColor[colorId] = new List<IFormFile>();
+                        keepExistingImages[colorId] = new List<int>();
+                    }
+                }
+            }
+            
+            // Get the existing images to keep
+            foreach (var key in Request.Form.Keys)
+            {
+                if (key.StartsWith("KeepImage_"))
+                {
+                    var parts = key.Split('_');
+                    if (parts.Length == 3 && 
+                        int.TryParse(parts[1], out int colorId) && 
+                        int.TryParse(parts[2], out int imageId))
+                    {
+                        if (!keepExistingImages.ContainsKey(colorId))
+                        {
+                            keepExistingImages[colorId] = new List<int>();
+                        }
+                        keepExistingImages[colorId].Add(imageId);
+                    }
+                }
+            }
+            
+            // Log all files to help with debugging
+            _logger.LogInformation("Total files in request: {Count}", Request.Form.Files.Count);
+            foreach (var file in Request.Form.Files)
+            {
+                _logger.LogInformation("File: {Name}, FileName: {FileName}, Size: {Size}", 
+                    file.Name, file.FileName, file.Length);
+            }
+            
+            // Group new files by color
+            for (int i = 0; i < Request.Form.Files.Count; i++)
+            {
+                var file = Request.Form.Files[i];
+                if (file.Name.StartsWith("NewImages_"))
+                {
+                    var parts = file.Name.Split('_');
+                    if (parts.Length == 2 && int.TryParse(parts[1], out int colorId) && colorId > 0)
+                    {
+                        if (!imagesByColor.ContainsKey(colorId))
+                        {
+                            imagesByColor[colorId] = new List<IFormFile>();
+                        }
+                        imagesByColor[colorId].Add(file);
+                        _logger.LogInformation("Added new file {FileName} to color {ColorId}", 
+                            file.FileName, colorId);
+                    }
+                }
+            }
+            
+            async Task<IActionResult> PrepareViewBagsAndReturn()
+            {
+                var existingProduct = await _context.Products
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.Color)
+                    .FirstOrDefaultAsync(p => p.ProductId == id);
+                  // Group images by color for the view
+                ViewBag.ProductImagesGrouped = existingProduct?.ProductImages
+                    .GroupBy(pi => pi.ColorId ?? 0)
+                    .ToDictionary(g => g.Key, g => g.ToList()) ?? new Dictionary<int, List<ProductImage>>();
+                
+                ViewBag.Categories = new SelectList(await _context.Categories.ToListAsync(), "CategoryId", "CategoryName", product.CategoryId);
+                ViewBag.Colors = new SelectList(await _context.Colors.ToListAsync(), "ColorId", "ColorName");
+                ViewBag.Discounts = new SelectList(await _context.DiscountPrograms.ToListAsync(), "DiscountId", "DiscountName", product.DiscountId);
+                return View(product);
+            }
+            
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                _logger.LogWarning("Model validation failed: {Errors}", string.Join(", ", errors));
+                return await PrepareViewBagsAndReturn();
+            }
+            
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Get the existing product with images
+                var existingProduct = await _context.Products
+                    .Include(p => p.ProductImages)
+                    .FirstOrDefaultAsync(p => p.ProductId == id);
+                
+                if (existingProduct == null)
+                {
+                    _logger.LogWarning("Product with ID {ProductId} not found during edit", id);
+                    TempData["Error"] = "Không tìm thấy sản phẩm";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                // Update basic product information
+                existingProduct.ProductName = product.ProductName;
+                existingProduct.ShortDescription = product.ShortDescription;
+                existingProduct.DetailDescription = product.DetailDescription;
+                existingProduct.Price = product.Price;
+                existingProduct.Stock = product.Stock;
+                existingProduct.CategoryId = product.CategoryId;
+                existingProduct.DiscountId = product.DiscountId;
+                
+                // Save the updated product
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Updated basic product information for ID: {ProductId}", id);
+                  // Remove images that weren't marked to keep
+                var imagesToRemove = existingProduct.ProductImages
+                    .Where(pi => !keepExistingImages.ContainsKey(pi.ColorId ?? 0) || 
+                                !keepExistingImages[pi.ColorId ?? 0].Contains(pi.ImageId))
+                    .ToList();
+                
+                if (imagesToRemove.Any())
+                {
+                    _logger.LogInformation("Removing {Count} images for product {ProductId}", 
+                        imagesToRemove.Count, id);
+                    _context.ProductImages.RemoveRange(imagesToRemove);
+                    await _context.SaveChangesAsync();
+                }
+                
+                // Add new images for each color
+                foreach (var colorId in colors)
+                {
+                    var newImages = imagesByColor[colorId];
+                    if (newImages.Any())
+                    {
+                        _logger.LogInformation("Adding {Count} new images for color {ColorId}", 
+                            newImages.Count, colorId);
+                        
+                        foreach (var image in newImages.Where(i => i != null && i.Length > 0))
+                        {
+                            try
+                            {
+                                var imageData = await _imageService.ProcessImageAsync(image);
+                                if (imageData == null)
+                                {
+                                    _logger.LogWarning("Image processing returned null for {FileName}", image.FileName);
+                                    continue;
+                                }
+                                
+                                var productImage = new ProductImage
+                                {
+                                    ProductId = id,
+                                    ColorId = colorId,
+                                    ImageData = imageData,
+                                    ImageMimeType = "image/jpeg"
+                                };
+                                
+                                _context.ProductImages.Add(productImage);
+                                await _context.SaveChangesAsync();
+                                
+                                _logger.LogInformation(
+                                    "Added new image for product {ProductId}, color {ColorId}, size {Size} bytes",
+                                    id, colorId, imageData.Length);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error processing new image for product {ProductId}", id);
+                                ModelState.AddModelError("", $"Lỗi xử lý ảnh: {ex.Message}");
+                                await transaction.RollbackAsync();
+                                return await PrepareViewBagsAndReturn();
+                            }
+                        }
+                    }
+                }
+                
+                await transaction.CommitAsync();
+                _logger.LogInformation("Successfully completed product edit for {ProductId}", id);
+                TempData["Success"] = "Cập nhật sản phẩm thành công";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing product: {Message}", ex.Message);
+                await transaction.RollbackAsync();
+                ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật sản phẩm: " + ex.Message);
+                return await PrepareViewBagsAndReturn();
+            }
+        }
+        
+        [AdminAuthorize]
+        public async Task<IActionResult> Details(int id)
+        {
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                    .ThenInclude(pi => pi.Color)
+                .Include(p => p.Discount)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+                
+            if (product == null)
+            {
+                TempData["Error"] = "Không tìm thấy sản phẩm";
+                return RedirectToAction(nameof(Index));
+            }
+            
+            return View(product);
         }
     }
 }

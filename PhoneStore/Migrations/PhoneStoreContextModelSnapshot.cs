@@ -282,14 +282,23 @@ namespace PhoneStore.Migrations
                         .HasColumnType("int")
                         .HasColumnName("CustomerID");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
 
+                    b.Property<string>("PaymentMethod")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("ShippingAddressId")
                         .HasColumnType("int")
                         .HasColumnName("ShippingAddressID");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("TotalAmount")
                         .HasColumnType("decimal(18, 2)");

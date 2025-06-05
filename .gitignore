@@ -46,5 +46,10 @@ yarn.lock
 *.db
 *.sqlite3
 
+# Sensitive files
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
+
 # User uploads
 wwwroot/uploads/
