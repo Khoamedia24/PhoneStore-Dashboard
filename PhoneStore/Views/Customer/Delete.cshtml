@@ -1,0 +1,85 @@
+@model PhoneStore.Models.Customer
+@{
+    ViewData["Title"] = "Xóa khách hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Xóa khách hàng</h1>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Xác nhận xóa khách hàng</h6>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.HasOrders)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Không thể xóa!</strong> Khách hàng này đã có đơn hàng trong hệ thống.
+                        </div>
+                        <p>
+                            Bạn không thể xóa khách hàng này vì họ đã có đơn hàng trong hệ thống. 
+                            Việc xóa có thể gây mất dữ liệu liên quan đến lịch sử đơn hàng.
+                        </p>
+                        <a asp-action="Index" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                        </a>
+                    }
+                    else
+                    {
+                        <h3 class="text-danger">Bạn có chắc chắn muốn xóa khách hàng này?</h3>
+                        <hr />
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">ID:</div>
+                            <div class="col-md-8">@Model.CustomerId</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Tên:</div>
+                            <div class="col-md-8">@Model.Name</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Email:</div>
+                            <div class="col-md-8">@Model.Email</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Số điện thoại:</div>
+                            <div class="col-md-8">@Model.Phone</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Năm sinh:</div>
+                            <div class="col-md-8">@Model.BirthYear</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Loại thành viên:</div>
+                            <div class="col-md-8">@(Model.Membership?.Name ?? "Không có")</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 font-weight-bold">Ngày tạo:</div>
+                            <div class="col-md-8">@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd/MM/yyyy HH:mm") : "")</div>
+                        </div>
+
+                        <form asp-action="Delete" method="post">
+                            <input type="hidden" asp-for="CustomerId" />
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Xác nhận xóa
+                                </button>
+                                <a asp-action="Index" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Hủy
+                                </a>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
