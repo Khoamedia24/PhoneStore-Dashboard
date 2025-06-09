@@ -1,0 +1,226 @@
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Đơn hàng của tôi</h1>
+                    <p class="text-gray-600 mt-1">Theo dõi và quản lý đơn hàng của bạn</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Tất cả đơn hàng</option>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="confirmed">Đã xác nhận</option>
+                        <option value="shipping">Đang giao</option>
+                        <option value="delivered">Đã giao</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders List -->
+        <div class="space-y-4">
+            <!-- Sample Order 1 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div>
+                                <h3 class="font-semibold text-lg text-gray-900">#ORD001</h3>
+                                <p class="text-sm text-gray-600">Đặt ngày: 15/01/2024</p>
+                            </div>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                Chờ xử lý
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-gray-900">2.500.000 ₫</p>
+                            <p class="text-sm text-gray-600">2 sản phẩm</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Product 1 -->
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <img src="https://via.placeholder.com/60x60?text=Phone" alt="Product" class="w-15 h-15 object-cover rounded-lg">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">iPhone 15 Pro Max</h4>
+                                    <p class="text-sm text-gray-600">256GB - Titan Tự nhiên</p>
+                                    <p class="text-sm font-medium text-gray-900">1 x 1.500.000 ₫</p>
+                                </div>
+                            </div>
+
+                            <!-- Product 2 -->
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <img src="https://via.placeholder.com/60x60?text=Phone" alt="Product" class="w-15 h-15 object-cover rounded-lg">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">Samsung Galaxy S24</h4>
+                                    <p class="text-sm text-gray-600">128GB - Đen</p>
+                                    <p class="text-sm font-medium text-gray-900">1 x 1.000.000 ₫</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                        <div class="flex items-center space-x-2 text-sm text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>123 Nguyễn Văn A, Q1, TP.HCM</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                Chi tiết
+                            </button>
+                            <button class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                                Hủy đơn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Order 2 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div>
+                                <h3 class="font-semibold text-lg text-gray-900">#ORD002</h3>
+                                <p class="text-sm text-gray-600">Đặt ngày: 10/01/2024</p>
+                            </div>
+                            <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                Đã giao
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-gray-900">1.200.000 ₫</p>
+                            <p class="text-sm text-gray-600">1 sản phẩm</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Product -->
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <img src="https://via.placeholder.com/60x60?text=Phone" alt="Product" class="w-15 h-15 object-cover rounded-lg">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">Xiaomi Redmi Note 13</h4>
+                                    <p class="text-sm text-gray-600">128GB - Xanh</p>
+                                    <p class="text-sm font-medium text-gray-900">1 x 1.200.000 ₫</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                        <div class="flex items-center space-x-2 text-sm text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>123 Nguyễn Văn A, Q1, TP.HCM</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                Chi tiết
+                            </button>
+                            <button class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                                Mua lại
+                            </button>
+                            <button class="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                                Đánh giá
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State (when no orders) -->
+            <!--
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 12H6L5 9z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Chưa có đơn hàng nào</h3>
+                <p class="text-gray-600 mb-6">Bạn chưa có đơn hàng nào. Hãy khám phá và mua sắm ngay!</p>
+                <a href="@Url.Action("Index", "Home")" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                    Mua sắm ngay
+                </a>
+            </div>
+            -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-8 flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Hiển thị <span class="font-medium">1</span> đến <span class="font-medium">2</span> của <span class="font-medium">2</span> đơn hàng
+            </div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                    <span class="sr-only">Previous</span>
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                <a href="#" aria-current="page" class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                    1
+                </a>
+                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                    <span class="sr-only">Next</span>
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Order status filter
+    const statusFilter = document.querySelector('select');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            // Filter orders by status
+            console.log('Filter by status:', this.value);
+            // TODO: Implement filtering logic
+        });
+    }
+
+    // Cancel order buttons
+    const cancelButtons = document.querySelectorAll('button:contains("Hủy đơn")');
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
+                // TODO: Implement cancel order logic
+                console.log('Cancel order');
+            }
+        });
+    });
+
+    // Order detail buttons
+    const detailButtons = document.querySelectorAll('button:contains("Chi tiết")');
+    detailButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            // TODO: Navigate to order detail page
+            console.log('View order details');
+        });
+    });
+});
+</script>

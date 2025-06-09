@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhoneStore", "PhoneStore\PhoneStore.csproj", "{9B9F4772-F8ED-4456-8EC0-364AD1990B34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhoneStore.Customer", "PhoneStore.Customer\PhoneStore.Customer.csproj", "{B62A0708-0919-4355-B1FA-3E341E601991}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9B9F4772-F8ED-4456-8EC0-364AD1990B34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B9F4772-F8ED-4456-8EC0-364AD1990B34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B9F4772-F8ED-4456-8EC0-364AD1990B34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B9F4772-F8ED-4456-8EC0-364AD1990B34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B62A0708-0919-4355-B1FA-3E341E601991}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B62A0708-0919-4355-B1FA-3E341E601991}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B62A0708-0919-4355-B1FA-3E341E601991}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B62A0708-0919-4355-B1FA-3E341E601991}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
